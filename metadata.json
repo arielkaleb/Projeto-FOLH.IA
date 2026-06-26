@@ -1,0 +1,6 @@
+{
+  "name": "FOLH.IA",
+  "description": "Plataforma de inteligência artificial para democratizar o acesso e compreensão de produtores rurais ao CAR e ao Código Florestal Brasileiro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

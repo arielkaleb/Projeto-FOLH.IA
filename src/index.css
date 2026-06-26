@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+
+  /* Mandatory custom palette */
+  --color-verde-natureza: #10b981; /* Nature green */
+  --color-verde-floresta: #064e3b; /* Forest green */
+  --color-bege-claro: #fbf9f4; /* Light warm beige background */
+  --color-bege-card: #f2ede0; /* Warm beige card */
+  --color-dourado-suave: #ca8a04; /* Soft gold */
+}
+
+body {
+  background-color: var(--color-bege-claro);
+  color: var(--color-verde-floresta);
+  font-family: var(--font-sans);
+}
+
+/* Remove spin buttons from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
