@@ -78,20 +78,43 @@ export default function AnalystArea({ onBack, onPreviewReport }: AnalystAreaProp
         throw new Error("Erro de resposta do servidor de IA.");
       }
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      if (!reader) {
+        throw new Error("Leitor de fluxo não disponível.");
+      }
+
+      const modelMsgId = `analyst-model-${Date.now()}`;
       const modelMsg: Message = {
-        id: `analyst-model-${Date.now()}`,
+        id: modelMsgId,
         role: "model",
-        content: data.text,
+        content: "",
         timestamp: new Date()
       };
 
       setMessages((prev) => [...prev, modelMsg]);
-      setTimeout(scrollToBottom, 100);
+      setTimeout(scrollToBottom, 50);
+
+      // Turn off loading spinner as soon as the first packet is arriving/processed
+      setIsLoading(false);
+
+      let accumulatedText = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        setMessages((prev) => 
+          prev.map((m) => m.id === modelMsgId ? { ...m, content: accumulatedText } : m)
+        );
+        setTimeout(scrollToBottom, 50);
+      }
 
       // If a file was analyzed, try to extract a structured summary from modelMsg
       if (tempFile) {
-        parseStructuredReport(data.text, tempFile.name);
+        parseStructuredReport(accumulatedText, tempFile.name);
       }
 
     } catch (err: any) {

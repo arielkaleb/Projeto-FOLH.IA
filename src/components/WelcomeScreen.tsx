@@ -1,6 +1,7 @@
 import React from "react";
-import { Leaf, User, ShieldAlert, Users, Calculator } from "lucide-react";
+import { User, ShieldAlert, Users, Calculator, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import OfficialLogo from "./OfficialLogo";
 
 interface WelcomeScreenProps {
   onSelectRole: (role: "PRODUCER" | "ANALYST" | "COMMUNITY" | "CALCULATORS") => void;
@@ -16,15 +17,9 @@ export default function WelcomeScreen({ onSelectRole }: WelcomeScreenProps) {
         className="flex flex-col items-center max-w-4xl mx-auto"
         id="welcome-logo-container"
       >
-        {/* Leaf Logo Emblem */}
-        <div 
-          className="w-24 h-24 rounded-full bg-verde-floresta flex items-center justify-center shadow-lg mb-8 border-2 border-verde-natureza relative"
-          id="leaf-logo-emblem"
-        >
-          <Leaf className="w-12 h-12 text-white" />
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-dourado-suave rounded-full border-2 border-bege-claro flex items-center justify-center shadow">
-            <span className="text-[9px] font-bold text-white">IA</span>
-          </div>
+        {/* Official Logo Emblem */}
+        <div className="mb-6" id="welcome-logo-emblem">
+          <OfficialLogo size="xl" className="drop-shadow-lg" />
         </div>
 
         {/* Brand Name */}
@@ -69,7 +64,7 @@ export default function WelcomeScreen({ onSelectRole }: WelcomeScreenProps) {
             id="btn-role-producer"
           >
             <div className="w-14 h-14 rounded-full bg-verde-natureza/10 flex items-center justify-center text-verde-natureza mb-4 group-hover:bg-verde-natureza group-hover:text-white transition-all duration-300 shadow-sm">
-              <Leaf className="w-6 h-6" />
+              <Sparkles className="w-6 h-6" />
             </div>
             <span className="font-display font-bold text-base sm:text-lg text-verde-floresta mb-1.5 tracking-wide uppercase">
               CONVERSAR COM A FOLH.IA

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Leaf, Award, HelpCircle, ArrowLeft } from "lucide-react";
+import { Award, HelpCircle, ArrowLeft } from "lucide-react";
 import WelcomeScreen from "./components/WelcomeScreen";
 import ProducerArea from "./components/ProducerArea";
 import CommunityArea from "./components/CommunityArea";
@@ -7,6 +7,7 @@ import EnvironmentalCalculators from "./components/EnvironmentalCalculators";
 import PrintableReport from "./components/PrintableReport";
 import { UserRole } from "./types";
 import { motion, AnimatePresence } from "motion/react";
+import OfficialLogo from "./components/OfficialLogo";
 
 export default function App() {
   const [role, setRole] = useState<UserRole>("HOME");
@@ -31,8 +32,8 @@ export default function App() {
             className="flex items-center space-x-2 cursor-pointer select-none group"
             id="header-logo-button"
           >
-            <div className="w-8 h-8 rounded-full bg-verde-floresta flex items-center justify-center text-white transition-transform group-hover:rotate-12 duration-300">
-              <Leaf className="w-4 h-4 text-verde-natureza" />
+            <div className="flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+              <OfficialLogo size="sm" />
             </div>
             <span className="font-display font-bold text-lg tracking-tight text-verde-floresta">
               FOLH<span className="text-verde-natureza">.</span><span className="text-dourado-suave">IA</span>

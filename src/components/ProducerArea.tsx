@@ -107,7 +107,6 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
   const [audioPlayingId, setAudioPlayingId] = useState<string | null>(null);
   const [isAudioPaused, setIsAudioPaused] = useState(false);
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const playbackSpeedRef = useRef<number>(1.0);
   const speechCharIndexRef = useRef<number>(0);
 
@@ -115,18 +114,6 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
   useEffect(() => {
     localStorage.setItem("folhia_producer_messages", JSON.stringify(messages));
   }, [messages]);
-
-  // Keep playbackSpeedRef in sync with playbackSpeed state to avoid stale closures and update current playing audio
-  useEffect(() => {
-    playbackSpeedRef.current = playbackSpeed;
-    if (audioElementRef.current) {
-      try {
-        audioElementRef.current.playbackRate = playbackSpeed;
-      } catch (e) {
-        console.error("Erro ao aplicar velocidade no áudio ativo:", e);
-      }
-    }
-  }, [playbackSpeed]);
 
   const handleRefreshChat = () => {
     setIsLoading(false); // Reset loading state if stuck
@@ -649,17 +636,38 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
         throw new Error("Resposta indisponível do servidor.");
       }
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      if (!reader) {
+        throw new Error("Leitor de fluxo não disponível.");
+      }
+
+      const modelMsgId = `model-${Date.now()}`;
       const modelMsg: Message = {
-        id: `model-${Date.now()}`,
+        id: modelMsgId,
         role: "model",
-        content: data.text,
+        content: "",
         timestamp: new Date()
       };
 
+      // Add the empty message to set up real-time stream rendering
       setMessages((prev) => [...prev, modelMsg]);
-      
-      // Auto-narrate response has been removed upon user request - user must select to play audio manually.
+
+      // Turn off loading spinner as soon as the first packet is arriving/processed
+      setIsLoading(false);
+
+      let accumulatedText = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        setMessages((prev) => 
+          prev.map((m) => m.id === modelMsgId ? { ...m, content: accumulatedText } : m)
+        );
+      }
 
     } catch (err: any) {
       console.error("Erro na comunicação:", err);
@@ -814,23 +822,6 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
   return (
     <div className={getWrapperClass()} id="producer-area-wrapper">
       
-      {/* Floating Accessibility Toggle FAB with Accessibility Symbol */}
-      <button
-        onClick={() => {
-          setShowAccessibilityPanel(!showAccessibilityPanel);
-          setShowOptions(false);
-        }}
-        className={`absolute right-4 top-20 z-40 p-2.5 rounded-full shadow-lg border transition-all cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 ${
-          showAccessibilityPanel 
-            ? "bg-dourado-suave text-verde-floresta border-dourado-suave font-bold" 
-            : "bg-white text-verde-floresta border-bege-card hover:bg-bege-claro"
-        }`}
-        title="Controles de Acessibilidade"
-        id="btn-accessibility-floating"
-      >
-        <Accessibility className="w-5 h-5 shrink-0 text-emerald-700" />
-      </button>
-      
       {/* Producer Chat Header */}
       <div className="bg-verde-floresta px-4 sm:px-6 py-4 flex items-center justify-between text-white border-b border-verde-natureza/30" id="producer-header">
         <div className="flex items-center space-x-2 sm:space-x-3">
@@ -869,7 +860,6 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
             <button
               onClick={() => {
                 setShowOptions(!showOptions);
-                setShowAccessibilityPanel(false);
               }}
               className="text-[10px] sm:text-xs font-semibold px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-white/10 flex items-center gap-1 cursor-pointer shrink-0"
               id="btn-options-dropdown"
@@ -1027,26 +1017,6 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
                 >
                   Voz IA
                 </button>
-              </div>
-            </div>
-
-            {/* Playback speed adjustment */}
-            <div className="flex items-center justify-between w-full sm:w-auto gap-2">
-              <span className="font-bold uppercase tracking-wider text-[9px] sm:text-[10px] opacity-80 shrink-0">Velocidade do Áudio:</span>
-              <div className="flex bg-white/50 rounded-lg p-0.5 border border-bege-card/40 shadow-sm shrink-0">
-                {[1.0, 1.25, 1.5, 1.75, 2.0].map((speed) => (
-                  <button
-                    key={speed}
-                    onClick={() => setPlaybackSpeed(speed)}
-                    className={`px-1.5 sm:px-2 py-1 text-[10px] rounded font-bold transition-all cursor-pointer ${
-                      playbackSpeed === speed
-                        ? "bg-verde-floresta text-white font-black"
-                        : "text-verde-floresta hover:bg-white/50"
-                    }`}
-                  >
-                    {speed}x
-                  </button>
-                ))}
               </div>
             </div>
           </motion.div>
@@ -1232,38 +1202,7 @@ export default function ProducerArea({ onBack }: ProducerAreaProps) {
       {/* Main input controls panel */}
       <div className="p-4 border-t border-bege-card bg-white" id="producer-controls-panel">
         
-        {/* Quick audio suggestions helper (Fale por mim) - highly intuitive for low literacy */}
-        <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" id="voice-presets">
-          <span className="text-[10px] text-gray-400 font-bold uppercase whitespace-nowrap">Perguntas Rápidas:</span>
-          <button 
-            onClick={() => simulateVoiceMessage("Posso plantar perto do rio?")}
-            className="text-xs bg-bege-claro hover:bg-bege-card px-3 py-1.5 rounded-full border border-bege-card text-verde-floresta whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Mic className="w-3 h-3 text-dourado-suave" />
-            "Posso plantar perto do rio?"
-          </button>
-          <button 
-            onClick={() => simulateVoiceMessage("O que é APP?")}
-            className="text-xs bg-bege-claro hover:bg-bege-card px-3 py-1.5 rounded-full border border-bege-card text-verde-floresta whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Mic className="w-3 h-3 text-dourado-suave" />
-            "O que é APP?"
-          </button>
-          <button 
-            onClick={() => simulateVoiceMessage("Meu CAR deu problema.")}
-            className="text-xs bg-bege-claro hover:bg-bege-card px-3 py-1.5 rounded-full border border-bege-card text-verde-floresta whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Mic className="w-3 h-3 text-dourado-suave" />
-            "Meu CAR deu problema."
-          </button>
-          <button 
-            onClick={() => simulateVoiceMessage("Tenho área desmatada, o que fazer?")}
-            className="text-xs bg-bege-claro hover:bg-bege-card px-3 py-1.5 rounded-full border border-bege-card text-verde-floresta whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Mic className="w-3 h-3 text-dourado-suave" />
-            "Área desmatada"
-          </button>
-        </div>
+
 
         {/* File Attachment Notification */}
         {attachedFile && (

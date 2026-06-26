@@ -149,19 +149,47 @@ app.post("/api/chat/producer", async (req, res) => {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: contents,
-      config: {
-        systemInstruction: PRODUCER_SYSTEM_INSTRUCTION,
-        temperature: 0.2,
-      },
-    });
+    // Set streaming headers
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
-    res.json({ text: response.text });
+    let responseStream;
+    try {
+      responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.1-pro-preview",
+        contents: contents,
+        config: {
+          systemInstruction: PRODUCER_SYSTEM_INSTRUCTION,
+          temperature: 0.2,
+        },
+      });
+    } catch (proError) {
+      console.warn("Falha ao usar o modelo Pro para o Produtor. Usando Flash:", proError);
+      responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.5-flash",
+        contents: contents,
+        config: {
+          systemInstruction: PRODUCER_SYSTEM_INSTRUCTION,
+          temperature: 0.2,
+        },
+      });
+    }
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(chunk.text);
+      }
+    }
+    res.end();
   } catch (error: any) {
     console.error("Erro no chat do produtor:", error);
-    res.status(500).json({ error: error.message || "Erro interno do servidor." });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || "Erro interno do servidor." });
+    } else {
+      res.end();
+    }
   }
 });
 
@@ -245,19 +273,47 @@ app.post("/api/chat/analyst", async (req, res) => {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: contents,
-      config: {
-        systemInstruction: ANALYST_SYSTEM_INSTRUCTION,
-        temperature: 0.1,
-      },
-    });
+    // Set streaming headers
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
-    res.json({ text: response.text });
+    let responseStream;
+    try {
+      responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.1-pro-preview",
+        contents: contents,
+        config: {
+          systemInstruction: ANALYST_SYSTEM_INSTRUCTION,
+          temperature: 0.1,
+        },
+      });
+    } catch (proError) {
+      console.warn("Falha ao usar o modelo Pro para o Analista. Usando Flash:", proError);
+      responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.5-flash",
+        contents: contents,
+        config: {
+          systemInstruction: ANALYST_SYSTEM_INSTRUCTION,
+          temperature: 0.1,
+        },
+      });
+    }
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(chunk.text);
+      }
+    }
+    res.end();
   } catch (error: any) {
     console.error("Erro no chat do analista:", error);
-    res.status(500).json({ error: error.message || "Erro interno do servidor." });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || "Erro interno do servidor." });
+    } else {
+      res.end();
+    }
   }
 });
 
